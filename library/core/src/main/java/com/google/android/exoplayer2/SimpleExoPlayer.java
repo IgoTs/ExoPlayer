@@ -250,6 +250,10 @@ public class SimpleExoPlayer extends BasePlayer
     audioFocusManager = new AudioFocusManager(context, componentListener);
   }
 
+  public long getRenderTime() {
+    return this.player.getRenderTime();
+  }
+
   @Override
   @Nullable
   public AudioComponent getAudioComponent() {

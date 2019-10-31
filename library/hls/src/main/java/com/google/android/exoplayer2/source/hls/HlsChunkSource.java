@@ -130,6 +130,8 @@ import java.util.Map;
    * @param muxedCaptionFormats List of muxed caption {@link Format}s. Null if no closed caption
    *     information is available in the master playlist.
    */
+  private HlsChunckSourceListener hlsChunckSourceListener;
+
   public HlsChunkSource(
       HlsExtractorFactory extractorFactory,
       HlsPlaylistTracker playlistTracker,
@@ -138,7 +140,9 @@ import java.util.Map;
       HlsDataSourceFactory dataSourceFactory,
       @Nullable TransferListener mediaTransferListener,
       TimestampAdjusterProvider timestampAdjusterProvider,
-      List<Format> muxedCaptionFormats) {
+      List<Format> muxedCaptionFormats,
+      HlsChunckSourceListener hlsChunckSourceListener) {
+    this.hlsChunckSourceListener = hlsChunckSourceListener;
     this.extractorFactory = extractorFactory;
     this.playlistTracker = playlistTracker;
     this.playlistUrls = playlistUrls;
@@ -321,6 +325,10 @@ import java.util.Map;
     out.chunk = maybeCreateEncryptionChunkFor(mediaSegmentKeyUri, selectedTrackIndex);
     if (out.chunk != null) {
       return;
+    }
+
+    if(hlsChunckSourceListener != null) {
+      hlsChunckSourceListener.loadChunk(playlistTracker,playlistUrls,selectedTrackIndex,segment,playbackPositionUs,loadPositionUs);
     }
 
     out.chunk =
@@ -531,7 +539,17 @@ import java.util.Map;
 
     public InitializationTrackSelection(TrackGroup group, int[] tracks) {
       super(group, tracks);
-      selectedIndex = indexOf(group.getFormat(0));
+
+      int minBitrate = Integer.MAX_VALUE;
+
+      for(int i=0; i <group.length ;i++) {
+        if(minBitrate > group.getFormat(i).bitrate) {
+          minBitrate = group.getFormat(i).bitrate;
+          selectedIndex = i;
+        }
+      }
+
+     // selectedIndex = indexOf(group.getFormat(0).);
     }
 
     @Override
@@ -542,9 +560,11 @@ import java.util.Map;
         List<? extends MediaChunk> queue,
         MediaChunkIterator[] mediaChunkIterators) {
       long nowMs = SystemClock.elapsedRealtime();
-      if (!isBlacklisted(selectedIndex, nowMs)) {
+     // Log.e("track","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! isBlacklisted");
+     /* if (!isBlacklisted(selectedIndex, nowMs)) {
         return;
-      }
+      }*/
+    //  Log.e("track","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Selected");
       // Try from lowest bitrate to highest.
       for (int i = length - 1; i >= 0; i--) {
         if (!isBlacklisted(i, nowMs)) {

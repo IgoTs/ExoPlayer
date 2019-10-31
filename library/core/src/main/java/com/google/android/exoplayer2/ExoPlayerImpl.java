@@ -143,6 +143,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
     internalPlayerHandler = new Handler(internalPlayer.getPlaybackLooper());
   }
 
+  public long getRenderTime() {
+    return this.internalPlayer.getRenderTime();
+  }
+
   @Override
   @Nullable
   public AudioComponent getAudioComponent() {

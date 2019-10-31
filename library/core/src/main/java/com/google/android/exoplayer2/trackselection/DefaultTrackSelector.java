@@ -1317,6 +1317,10 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     }
   }
 
+  public void invalidateTraksSelections() {
+    invalidate();
+  }
+
   /**
    * Atomically sets the provided parameters for track selection.
    *

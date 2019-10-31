@@ -59,7 +59,7 @@ public final class HlsMediaSource extends BaseMediaSource
   public static final class Factory implements AdsMediaSource.MediaSourceFactory {
 
     private final HlsDataSourceFactory hlsDataSourceFactory;
-
+    private final HlsDataSourceFactory playlistDataSourceFactory;
     private HlsExtractorFactory extractorFactory;
     private HlsPlaylistParserFactory playlistParserFactory;
     @Nullable private List<StreamKey> streamKeys;
@@ -78,8 +78,8 @@ public final class HlsMediaSource extends BaseMediaSource
      *     DefaultHlsDataSourceFactory} to create {@link DataSource}s for manifests, segments and
      *     keys.
      */
-    public Factory(DataSource.Factory dataSourceFactory) {
-      this(new DefaultHlsDataSourceFactory(dataSourceFactory));
+    public Factory(DataSource.Factory dataSourceFactory,DataSource.Factory playlistDataSourceFactory) {
+      this(new DefaultHlsDataSourceFactory(dataSourceFactory),new DefaultHlsDataSourceFactory(playlistDataSourceFactory));
     }
 
     /**
@@ -88,8 +88,9 @@ public final class HlsMediaSource extends BaseMediaSource
      * @param hlsDataSourceFactory An {@link HlsDataSourceFactory} for {@link DataSource}s for
      *     manifests, segments and keys.
      */
-    public Factory(HlsDataSourceFactory hlsDataSourceFactory) {
+    public Factory(HlsDataSourceFactory hlsDataSourceFactory,HlsDataSourceFactory playlistDataSourceFactory) {
       this.hlsDataSourceFactory = Assertions.checkNotNull(hlsDataSourceFactory);
+      this.playlistDataSourceFactory = playlistDataSourceFactory;
       playlistParserFactory = new DefaultHlsPlaylistParserFactory();
       playlistTrackerFactory = DefaultHlsPlaylistTracker.FACTORY;
       extractorFactory = HlsExtractorFactory.DEFAULT;
@@ -109,6 +110,12 @@ public final class HlsMediaSource extends BaseMediaSource
     public Factory setTag(Object tag) {
       Assertions.checkState(!isCreateCalled);
       this.tag = tag;
+      return this;
+    }
+
+    private HlsChunckSourceListener chunkSourceListener;
+    public Factory setChunkListener(HlsChunckSourceListener source) {
+      chunkSourceListener = source;
       return this;
     }
 
@@ -270,10 +277,10 @@ public final class HlsMediaSource extends BaseMediaSource
           compositeSequenceableLoaderFactory,
           loadErrorHandlingPolicy,
           playlistTrackerFactory.createTracker(
-              hlsDataSourceFactory, loadErrorHandlingPolicy, playlistParserFactory),
+              playlistDataSourceFactory, loadErrorHandlingPolicy, playlistParserFactory),
           allowChunklessPreparation,
           useSessionKeys,
-          tag);
+          tag, chunkSourceListener);
     }
 
     /**
@@ -306,11 +313,11 @@ public final class HlsMediaSource extends BaseMediaSource
   private final LoadErrorHandlingPolicy loadErrorHandlingPolicy;
   private final boolean allowChunklessPreparation;
   private final boolean useSessionKeys;
-  private final HlsPlaylistTracker playlistTracker;
+  public final HlsPlaylistTracker playlistTracker;
   private final @Nullable Object tag;
 
   private @Nullable TransferListener mediaTransferListener;
-
+  HlsChunckSourceListener chunkSourceListener;
   private HlsMediaSource(
       Uri manifestUri,
       HlsDataSourceFactory dataSourceFactory,
@@ -320,7 +327,8 @@ public final class HlsMediaSource extends BaseMediaSource
       HlsPlaylistTracker playlistTracker,
       boolean allowChunklessPreparation,
       boolean useSessionKeys,
-      @Nullable Object tag) {
+      @Nullable Object tag,
+      HlsChunckSourceListener chunkSourceListener) {
     this.manifestUri = manifestUri;
     this.dataSourceFactory = dataSourceFactory;
     this.extractorFactory = extractorFactory;
@@ -330,6 +338,7 @@ public final class HlsMediaSource extends BaseMediaSource
     this.allowChunklessPreparation = allowChunklessPreparation;
     this.useSessionKeys = useSessionKeys;
     this.tag = tag;
+    this.chunkSourceListener = chunkSourceListener;
   }
 
   @Override
@@ -363,7 +372,8 @@ public final class HlsMediaSource extends BaseMediaSource
         allocator,
         compositeSequenceableLoaderFactory,
         allowChunklessPreparation,
-        useSessionKeys);
+        useSessionKeys,
+            chunkSourceListener);
   }
 
   @Override

@@ -81,7 +81,7 @@ public final class HlsMediaPeriod implements MediaPeriod, HlsSampleStreamWrapper
   private int[][] manifestUrlIndicesPerWrapper;
   private SequenceableLoader compositeSequenceableLoader;
   private boolean notifiedReadingStarted;
-
+  private HlsChunckSourceListener chunkSourceListener;
   /**
    * Creates an HLS media period.
    *
@@ -109,7 +109,9 @@ public final class HlsMediaPeriod implements MediaPeriod, HlsSampleStreamWrapper
       Allocator allocator,
       CompositeSequenceableLoaderFactory compositeSequenceableLoaderFactory,
       boolean allowChunklessPreparation,
-      boolean useSessionKeys) {
+      boolean useSessionKeys,
+      HlsChunckSourceListener chunkSourceListener) {
+    this.chunkSourceListener = chunkSourceListener;
     this.extractorFactory = extractorFactory;
     this.playlistTracker = playlistTracker;
     this.dataSourceFactory = dataSourceFactory;
@@ -483,7 +485,7 @@ public final class HlsMediaPeriod implements MediaPeriod, HlsSampleStreamWrapper
               null,
               Collections.emptyList(),
               overridingDrmInitData,
-              positionUs);
+              positionUs,null);
       manifestUrlIndicesPerWrapper.add(new int[] {i});
       sampleStreamWrappers.add(sampleStreamWrapper);
       sampleStreamWrapper.prepareWithMasterPlaylistInfo(
@@ -589,7 +591,8 @@ public final class HlsMediaPeriod implements MediaPeriod, HlsSampleStreamWrapper
             masterPlaylist.muxedAudioFormat,
             masterPlaylist.muxedCaptionFormats,
             overridingDrmInitData,
-            positionUs);
+            positionUs,
+                chunkSourceListener);
     sampleStreamWrappers.add(sampleStreamWrapper);
     manifestUrlIndicesPerWrapper.add(selectedVariantIndices);
     if (allowChunklessPreparation && codecs != null) {
@@ -696,7 +699,8 @@ public final class HlsMediaPeriod implements MediaPeriod, HlsSampleStreamWrapper
               /* muxedAudioFormat= */ null,
               /* muxedCaptionFormats= */ Collections.emptyList(),
               overridingDrmInitData,
-              positionUs);
+              positionUs,
+                  null);
       manifestUrlsIndicesPerWrapper.add(Util.toArray(scratchIndicesList));
       sampleStreamWrappers.add(sampleStreamWrapper);
 
@@ -715,7 +719,8 @@ public final class HlsMediaPeriod implements MediaPeriod, HlsSampleStreamWrapper
       Format muxedAudioFormat,
       List<Format> muxedCaptionFormats,
       Map<String, DrmInitData> overridingDrmInitData,
-      long positionUs) {
+      long positionUs,
+      HlsChunckSourceListener source) {
     HlsChunkSource defaultChunkSource =
         new HlsChunkSource(
             extractorFactory,
@@ -725,7 +730,8 @@ public final class HlsMediaPeriod implements MediaPeriod, HlsSampleStreamWrapper
             dataSourceFactory,
             mediaTransferListener,
             timestampAdjusterProvider,
-            muxedCaptionFormats);
+            muxedCaptionFormats,
+                source);
     return new HlsSampleStreamWrapper(
         trackType,
         /* callback= */ this,
