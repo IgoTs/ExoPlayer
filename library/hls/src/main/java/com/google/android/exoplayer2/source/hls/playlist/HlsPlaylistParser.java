@@ -44,6 +44,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -370,6 +371,13 @@ public final class HlsPlaylistParser implements ParsingLoadable.Parser<HlsPlayli
                 bitrate, videoGroupId, audioGroupId, subtitlesGroupId, closedCaptionsGroupId));
       }
     }
+
+
+    Collections.sort(variants, (o1, o2) -> {
+      if(o1.format.bitrate < o2.format.bitrate)
+        return 1;
+      return -1;
+    });
 
     // TODO: Don't deduplicate variants by URL.
     ArrayList<Variant> deduplicatedVariants = new ArrayList<>();
